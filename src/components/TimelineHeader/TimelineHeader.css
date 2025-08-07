@@ -1,0 +1,23 @@
+.timeline-header {
+  display: flex;
+  margin-left: 100px;
+  border-bottom: 1px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.timeline-month {
+  flex: 1;
+  min-width: 100px;
+  padding: 8px;
+  text-align: center;
+  border-right: 1px dashed #ccc;
+}
+
+.timeline-month-year {
+  font-size: 0.7em;
+  opacity: 0.7;
+}
+
