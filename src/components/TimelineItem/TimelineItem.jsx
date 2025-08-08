@@ -3,12 +3,17 @@ import dayjs from "dayjs";
 import "./TimelineItem.css";
 import { useTimeline } from "../../context/TimelineContex";
 
+const MIN_FONT_SIZE = 8;
+const MAX_FONT_SIZE = 12;
+
 const TimelineItem = ({ item, left, width }) => {
   const { timelineStart, totalDays, editItem } = useTimeline();
+
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(item.name);
   const [isResizing, setIsResizing] = useState(false);
   const [resizeType, setResizeType] = useState(null);
+
   const itemRef = useRef(null);
   const contentRef = useRef(null);
 
@@ -16,39 +21,45 @@ const TimelineItem = ({ item, left, width }) => {
     if (contentRef.current && !isEditing) {
       const element = contentRef.current;
       const parentWidth = element.parentElement.offsetWidth;
-      
-      let fontSize = 12;
+
+      let fontSize = MAX_FONT_SIZE;
       element.style.fontSize = `${fontSize}px`;
-      
-      while (element.scrollWidth > parentWidth && fontSize > 8) {
+
+      while (element.scrollWidth > parentWidth && fontSize > MIN_FONT_SIZE) {
         fontSize -= 0.5;
         element.style.fontSize = `${fontSize}px`;
       }
     }
   }, [width, isEditing, item.name]);
 
-  const handleSave = () => {
-    if (editedName.trim()) {
-      editItem(item.id, { name: editedName });
+  const handleSave = useCallback(() => {
+    const trimmedName = editedName.trim();
+    if (trimmedName && trimmedName !== item.name) {
+      editItem(item.id, { name: trimmedName });
     }
     setIsEditing(false);
-  };
+  }, [editedName, editItem, item]);
 
- const handleResize = useCallback(
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    setResizeType(null);
+  }, []);
+
+  const handleResize = useCallback(
     (e) => {
       if (!isResizing || !itemRef.current) return;
       e.preventDefault();
 
-      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientX = e.clientX ?? e.touches?.[0]?.clientX;
       if (!clientX) return;
 
       const timelineBody = itemRef.current.closest(".timeline-body");
       if (!timelineBody) return;
 
       const timelineRect = timelineBody.getBoundingClientRect();
-      const positionPercent = Math.max(
-        0,
-        Math.min(((clientX - timelineRect.left) / timelineRect.width) * 100, 100)
+      const positionPercent = Math.min(
+        100,
+        Math.max(0, ((clientX - timelineRect.left) / timelineRect.width) * 100)
       );
 
       const daysFromStart = (positionPercent / 100) * totalDays;
@@ -66,15 +77,10 @@ const TimelineItem = ({ item, left, width }) => {
         }
       }
     },
-    [isResizing, itemRef, resizeType, timelineStart, totalDays, editItem, item]
+    [isResizing, resizeType, timelineStart, totalDays, editItem, item]
   );
 
-  const handleResizeEnd = useCallback(() => {
-    setIsResizing(false);
-    setResizeType(null);
-  }, []);
-
-   useEffect(() => {
+  useEffect(() => {
     if (!isResizing) return;
 
     document.addEventListener("mousemove", handleResize);
@@ -90,22 +96,22 @@ const TimelineItem = ({ item, left, width }) => {
     };
   }, [isResizing, handleResize, handleResizeEnd]);
 
-   const handleResizeStart = (type, e) => {
+  const handleResizeStart = useCallback((type, e) => {
     e.stopPropagation();
     e.preventDefault();
     setResizeType(type);
     setIsResizing(true);
-  };
+  }, []);
 
-  const toggleEdit = (e) => {
+  const toggleEdit = useCallback((e) => {
     e.stopPropagation();
     setIsEditing(true);
-  };
+  }, []);
 
   return (
     <div
       ref={itemRef}
-      className={`timeline-item ${isResizing ? 'resizing' : ''}`}
+      className={`timeline-item${isResizing ? " resizing" : ""}`}
       style={{
         left: `${left}%`,
         width: `${width}%`,
@@ -113,26 +119,26 @@ const TimelineItem = ({ item, left, width }) => {
         minWidth: "60px",
       }}
     >
-      <div 
+      <div
         className="resize-handle resize-handle-left"
-        onMouseDown={(e) => handleResizeStart('start', e)}
-        onTouchStart={(e) => handleResizeStart('start', e)}
+        onMouseDown={(e) => handleResizeStart("start", e)}
+        onTouchStart={(e) => handleResizeStart("start", e)}
       />
-      <div 
+      <div
         className="resize-handle resize-handle-right"
-        onMouseDown={(e) => handleResizeStart('end', e)}
-        onTouchStart={(e) => handleResizeStart('end', e)}
+        onMouseDown={(e) => handleResizeStart("end", e)}
+        onTouchStart={(e) => handleResizeStart("end", e)}
       />
 
       {isEditing ? (
         <input
+          className="timeline-item-input"
+          style={{ fontSize: "12px" }}
+          autoFocus
           value={editedName}
           onChange={(e) => setEditedName(e.target.value)}
           onBlur={handleSave}
-          onKeyDown={(e) => e.key === "Enter" && handleSave()}
-          autoFocus
-          className="timeline-item-input"
-          style={{ fontSize: "12px" }}
+          onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
         />
       ) : (
         <div
