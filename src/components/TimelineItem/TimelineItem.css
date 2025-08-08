@@ -1,6 +1,7 @@
 .timeline-item {
   position: absolute;
-  height: 36px;
+  min-height: 36px;
+  height: auto;
   background-color: #e3f2fd;
   border: 1px solid #90caf9;
   border-radius: 4px;
