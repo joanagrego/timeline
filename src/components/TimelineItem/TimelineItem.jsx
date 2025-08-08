@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import dayjs from "dayjs";
 import "./TimelineItem.css";
 import { useTimeline } from "../../context/TimelineContex";
@@ -34,55 +34,67 @@ const TimelineItem = ({ item, left, width }) => {
     setIsEditing(false);
   };
 
-  const handleResizeStart = (type, e) => {
+ const handleResize = useCallback(
+    (e) => {
+      if (!isResizing || !itemRef.current) return;
+      e.preventDefault();
+
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      if (!clientX) return;
+
+      const timelineBody = itemRef.current.closest(".timeline-body");
+      if (!timelineBody) return;
+
+      const timelineRect = timelineBody.getBoundingClientRect();
+      const positionPercent = Math.max(
+        0,
+        Math.min(((clientX - timelineRect.left) / timelineRect.width) * 100, 100)
+      );
+
+      const daysFromStart = (positionPercent / 100) * totalDays;
+      const newDate = dayjs(timelineStart)
+        .add(daysFromStart, "day")
+        .format("YYYY-MM-DD");
+
+      if (resizeType === "start") {
+        if (dayjs(newDate).isBefore(item.end) && newDate !== item.start) {
+          editItem(item.id, { start: newDate });
+        }
+      } else if (resizeType === "end") {
+        if (dayjs(newDate).isAfter(item.start) && newDate !== item.end) {
+          editItem(item.id, { end: newDate });
+        }
+      }
+    },
+    [isResizing, itemRef, resizeType, timelineStart, totalDays, editItem, item]
+  );
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    setResizeType(null);
+  }, []);
+
+   useEffect(() => {
+    if (!isResizing) return;
+
+    document.addEventListener("mousemove", handleResize);
+    document.addEventListener("mouseup", handleResizeEnd);
+    document.addEventListener("touchmove", handleResize, { passive: false });
+    document.addEventListener("touchend", handleResizeEnd);
+
+    return () => {
+      document.removeEventListener("mousemove", handleResize);
+      document.removeEventListener("mouseup", handleResizeEnd);
+      document.removeEventListener("touchmove", handleResize);
+      document.removeEventListener("touchend", handleResizeEnd);
+    };
+  }, [isResizing, handleResize, handleResizeEnd]);
+
+   const handleResizeStart = (type, e) => {
     e.stopPropagation();
     e.preventDefault();
     setResizeType(type);
     setIsResizing(true);
-    
-    document.addEventListener('mousemove', handleResize);
-    document.addEventListener('mouseup', handleResizeEnd);
-    document.addEventListener('touchmove', handleResize, { passive: false });
-    document.addEventListener('touchend', handleResizeEnd);
-  };
-
-  const handleResize = (e) => {
-    if (!isResizing || !itemRef.current) return;
-    e.preventDefault();
-    
-    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-    if (!clientX) return;
-    
-    const timelineBody = itemRef.current.closest('.timeline-body');
-    if (!timelineBody) return;
-    
-    const timelineRect = timelineBody.getBoundingClientRect();
-    const positionPercent = Math.max(0, Math.min(
-      ((clientX - timelineRect.left) / timelineRect.width) * 100, 
-      100
-    ));
-    
-    const daysFromStart = (positionPercent / 100) * totalDays;
-    const newDate = dayjs(timelineStart).add(daysFromStart, 'day').format('YYYY-MM-DD');
-    
-    if (resizeType === 'start') {
-      if (dayjs(newDate).isBefore(item.end)) {
-        editItem(item.id, { start: newDate });
-      }
-    } else {
-      if (dayjs(newDate).isAfter(item.start)) {
-        editItem(item.id, { end: newDate });
-      }
-    }
-  };
-
-  const handleResizeEnd = () => {
-    setIsResizing(false);
-    setResizeType(null);
-    document.removeEventListener('mousemove', handleResize);
-    document.removeEventListener('mouseup', handleResizeEnd);
-    document.removeEventListener('touchmove', handleResize);
-    document.removeEventListener('touchend', handleResizeEnd);
   };
 
   const toggleEdit = (e) => {
