@@ -8,11 +8,10 @@ const TimelineItem = ({ item, left, width }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editedName, setEditedName] = useState(item.name);
   const [isResizing, setIsResizing] = useState(false);
-  const [resizeType, setResizeType] = useState(null); // 'start' or 'end'
+  const [resizeType, setResizeType] = useState(null);
   const itemRef = useRef(null);
   const contentRef = useRef(null);
 
-  // Handle text size adjustment
   useEffect(() => {
     if (contentRef.current && !isEditing) {
       const element = contentRef.current;
@@ -48,16 +47,20 @@ const TimelineItem = ({ item, left, width }) => {
   };
 
   const handleResize = (e) => {
-    if (!isResizing) return;
+    if (!isResizing || !itemRef.current) return;
     e.preventDefault();
     
-    const clientX = e.clientX || e.touches[0].clientX;
+    const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+    if (!clientX) return;
+    
     const timelineBody = itemRef.current.closest('.timeline-body');
+    if (!timelineBody) return;
+    
     const timelineRect = timelineBody.getBoundingClientRect();
-    const positionPercent = Math.min(Math.max(
+    const positionPercent = Math.max(0, Math.min(
       ((clientX - timelineRect.left) / timelineRect.width) * 100, 
       100
-    ), 0);
+    ));
     
     const daysFromStart = (positionPercent / 100) * totalDays;
     const newDate = dayjs(timelineStart).add(daysFromStart, 'day').format('YYYY-MM-DD');
@@ -82,6 +85,11 @@ const TimelineItem = ({ item, left, width }) => {
     document.removeEventListener('touchend', handleResizeEnd);
   };
 
+  const toggleEdit = (e) => {
+    e.stopPropagation();
+    setIsEditing(true);
+  };
+
   return (
     <div
       ref={itemRef}
@@ -93,7 +101,6 @@ const TimelineItem = ({ item, left, width }) => {
         minWidth: "60px",
       }}
     >
-      {/* Resize handles */}
       <div 
         className="resize-handle resize-handle-left"
         onMouseDown={(e) => handleResizeStart('start', e)}
@@ -119,7 +126,8 @@ const TimelineItem = ({ item, left, width }) => {
         <div
           ref={contentRef}
           className="timeline-item-content"
-          onDoubleClick={() => setIsEditing(true)}
+          onDoubleClick={toggleEdit}
+          onClick={(e) => e.stopPropagation()}
         >
           <span className="item-name">{item.name}</span>
           <span className="item-dates">

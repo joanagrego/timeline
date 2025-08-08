@@ -9,16 +9,18 @@
   user-select: none;
   transition: all 0.2s ease;
   box-sizing: border-box;
+  z-index: 1;
 }
 
-.timeline-item:hover .resize-handle {
-  background-color: rgba(25, 118, 210, 0.3);
+.timeline-item:hover {
+  z-index: 2;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 .timeline-item.resizing {
   cursor: ew-resize;
+  z-index: 3;
   box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.5);
-  z-index: 10;
 }
 
 .resize-handle {
@@ -27,8 +29,14 @@
   width: 8px;
   height: 100%;
   cursor: ew-resize;
-  z-index: 2;
-  transition: background-color 0.2s ease;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.timeline-item:hover .resize-handle {
+  opacity: 1;
+  background-color: rgba(25, 118, 210, 0.3);
 }
 
 .resize-handle-left {
@@ -48,7 +56,6 @@
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  pointer-events: none;
 }
 
 .item-name {
@@ -76,5 +83,5 @@
   font-family: inherit;
   padding: 0;
   pointer-events: auto;
-  z-index: 3;
+  z-index: 5;
 }
